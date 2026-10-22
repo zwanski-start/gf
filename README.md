@@ -81,6 +81,10 @@ Then `source` the `gf-completion.zsh` file in your `.zshrc` or similar:
 source ~/path/to/gf-completion.zsh
 ```
 
+The completion script runs `gf -list` to find your patterns. It uses the `gf` on your `$PATH` if there is one,
+otherwise it looks in `$GOPATH/bin` (or `~/go/bin` if `$GOPATH` isn't set). Adding your Go bin directory to your
+`$PATH` (e.g. `export PATH=$PATH:$HOME/go/bin`) is the simplest way to make sure it's found.
+
 Note: if you're using oh-my-zsh or similar you may find that `gf` is an alias for `git fetch`. You can either
 alias the gf binary to something else, or `unalias gf` to remove the `git fetch` alias.
 
