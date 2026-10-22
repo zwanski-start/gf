@@ -129,6 +129,42 @@ To get started quickly, you can copy the example pattern files to `~/.gf` like t
 My personal patterns that I've included as examples might not be very useful to you, but hopefully
 they're still a reasonable point of reference.
 
+## Troubleshooting
+
+### `fatal: 'xss' does not appear to be a git repository`
+
+If running something like `gf xss` gives you an error like this:
+
+```
+▶ gf xss
+fatal: 'xss' does not appear to be a git repository
+fatal: Could not read from remote repository.
+```
+
+then `gf` isn't running this tool at all: your shell has `gf` set up as an alias for `git fetch`.
+This is the case by default with the `git` plugin for [oh-my-zsh](https://github.com/ohmyzsh/ohmyzsh)
+(and some similar frameworks). You can check with:
+
+```
+▶ type gf
+gf is an alias for 'git fetch'
+```
+
+To fix it, remove the alias by adding this to your `~/.zshrc` *after* oh-my-zsh is loaded:
+
+```
+unalias gf
+```
+
+Alternatively, keep the `git fetch` alias and give the `gf` binary a different name, e.g. `alias gfp="$HOME/go/bin/gf"`.
+
+### `no such pattern` for patterns like `xss`
+
+`gf` only knows about the pattern files in `~/.gf`. The patterns in the `examples` directory don't
+include `xss`, `sqli`, `ssrf` and friends; those come from community collections such as
+[Gf-Patterns](https://github.com/1ndianl33t/Gf-Patterns). Copy the `.json` files into `~/.gf` and
+check that `gf -list` shows the pattern you want to use.
+
 ## Contributing
 
 I'd actually be most interested in new pattern files! If you've got something you regularly grep for
