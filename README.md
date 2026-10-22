@@ -105,16 +105,30 @@ In order to utilize a different engine, add `engine: <other tool>` to the releva
 
 ## Install
 
-If you've got Go installed and configured you can install `gf` with:
+If you've got Go 1.16 or newer installed you can install `gf` with:
 
 ```
-▶ go get -u github.com/tomnomnom/gf
+▶ go install github.com/tomnomnom/gf@latest
 ```
 
-If you've installed using `go get`, you can enable auto-completion to your `.bashrc` like this:
+The binary is placed in `$(go env GOPATH)/bin`, so make sure that directory is in your `$PATH`.
+
+Note: `go get -u github.com/tomnomnom/gf` no longer works for installing tools on modern versions
+of Go. If you see errors like `package fmt: unrecognized import path "fmt"`, use `go install` as
+shown above; if the error persists, your Go installation is probably broken or has a wrong `GOROOT`
+set (try `unset GOROOT` or reinstalling Go from [go.dev/dl](https://go.dev/dl/)).
+
+`go install` doesn't keep a copy of the source where it's easy to find, so to get the completion
+scripts and example patterns, clone the repository:
 
 ```
-▶ echo 'source $GOPATH/src/github.com/tomnomnom/gf/gf-completion.bash' >> ~/.bashrc
+▶ git clone https://github.com/tomnomnom/gf ~/.gf-src
+```
+
+You can then enable auto-completion in your `.bashrc` like this:
+
+```
+▶ echo 'source ~/.gf-src/gf-completion.bash' >> ~/.bashrc
 ```
 
 Note that you'll have to restart your terminal, or run `source ~/.bashrc` for the changes to
@@ -123,7 +137,7 @@ take effect.
 To get started quickly, you can copy the example pattern files to `~/.gf` like this:
 
 ```
-▶ cp -r $GOPATH/src/github.com/tomnomnom/gf/examples ~/.gf
+▶ mkdir -p ~/.gf && cp ~/.gf-src/examples/* ~/.gf/
 ```
 
 My personal patterns that I've included as examples might not be very useful to you, but hopefully
