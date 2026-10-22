@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"os/user"
 	"path/filepath"
 	"strings"
 )
@@ -35,6 +34,12 @@ func main() {
 		pats, err := getPatterns()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%s\n", err)
+			return
+		}
+
+		if len(pats) == 0 {
+			patDir, _ := getPatternDir()
+			fmt.Fprintf(os.Stderr, "no patterns found in %s\n", patDir)
 			return
 		}
 
@@ -69,7 +74,7 @@ func main() {
 	filename := filepath.Join(patDir, patName+".json")
 	f, err := os.Open(filename)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "no such pattern")
+		fmt.Fprintf(os.Stderr, "no such pattern (looked for %s)\n", filename)
 		return
 	}
 	defer f.Close()
@@ -117,16 +122,17 @@ func main() {
 }
 
 func getPatternDir() (string, error) {
-	usr, err := user.Current()
+	// os.UserHomeDir uses $HOME on Unix and %USERPROFILE% on Windows
+	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
-	path := filepath.Join(usr.HomeDir, ".config/gf")
+	path := filepath.Join(home, ".config", "gf")
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
 		// .config/gf exists
 		return path, nil
 	}
-	return filepath.Join(usr.HomeDir, ".gf"), nil
+	return filepath.Join(home, ".gf"), nil
 }
 
 func savePattern(name, flags, pat string) error {
@@ -173,16 +179,14 @@ func getPatterns() ([]string, error) {
 	if err != nil {
 		return out, fmt.Errorf("failed to determine pattern directory: %s", err)
 	}
-	_ = patDir
-
-	files, err := filepath.Glob(patDir + "/*.json")
+	// filepath.Join uses the OS-specific separator so this works on Windows too
+	files, err := filepath.Glob(filepath.Join(patDir, "*.json"))
 	if err != nil {
 		return out, err
 	}
 
 	for _, f := range files {
-		f = f[len(patDir)+1 : len(f)-5]
-		out = append(out, f)
+		out = append(out, strings.TrimSuffix(filepath.Base(f), ".json"))
 	}
 
 	return out, nil
