@@ -1,0 +1,4 @@
+{
+    "flags": "-HnrE",
+    "pattern": "(^|[;{}()[:space:]])debugger[[:space:]]*([;}]|$)"
+}
