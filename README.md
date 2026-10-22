@@ -54,6 +54,31 @@ You can use the `-save` flag to create pattern files from the command line:
 ▶ gf -save php-serialized -HnrE '(a:[0-9]+:{|O:[0-9]+:"|s:[0-9]+:")'
 ```
 
+### Context Lines
+
+Like grep, you can use `-A`, `-B` and `-C` to print lines of context after, before, or around each match:
+
+```
+▶ gf -A 2 php-sources
+▶ gf -C 3 php-sinks src/
+```
+
+Note that the flags must come before the pattern name, and need a space (or `=`) between the flag and the number
+(e.g. `-A 2` or `-A=2`, not `-A2`).
+
+You can also set default context in a pattern file with the `after`, `before` and `context` fields. Values given on
+the command line take precedence over those in the pattern file:
+
+```
+▶ cat ~/.gf/php-sources-context.json
+{
+    "flags": "-HnrE",
+    "pattern": "(\\$_(POST|GET|COOKIE|REQUEST|SERVER|FILES)|php://(input|stdin))",
+    "before": 1,
+    "after": 2
+}
+```
+
 ### Auto Complete
 
 There's an auto-complete script included, so you can hit 'tab' to show you what your options are:

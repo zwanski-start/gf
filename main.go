@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -17,6 +18,36 @@ type pattern struct {
 	Pattern  string   `json:"pattern,omitempty"`
 	Patterns []string `json:"patterns,omitempty"`
 	Engine   string   `json:"engine,omitempty"`
+	After    int      `json:"after,omitempty"`
+	Before   int      `json:"before,omitempty"`
+	Context  int      `json:"context,omitempty"`
+}
+
+// contextArgs returns the -A, -B and -C arguments to pass to the
+// engine. Values given on the command line take precedence over
+// those in the pattern file.
+func contextArgs(pat pattern, after, before, context int) []string {
+	if after > 0 {
+		pat.After = after
+	}
+	if before > 0 {
+		pat.Before = before
+	}
+	if context > 0 {
+		pat.Context = context
+	}
+
+	args := []string{}
+	if pat.After > 0 {
+		args = append(args, "-A", strconv.Itoa(pat.After))
+	}
+	if pat.Before > 0 {
+		args = append(args, "-B", strconv.Itoa(pat.Before))
+	}
+	if pat.Context > 0 {
+		args = append(args, "-C", strconv.Itoa(pat.Context))
+	}
+	return args
 }
 
 func main() {
@@ -28,6 +59,15 @@ func main() {
 
 	var dumpMode bool
 	flag.BoolVar(&dumpMode, "dump", false, "prints the grep command rather than executing it")
+
+	var after int
+	flag.IntVar(&after, "A", 0, "print N lines of trailing context after each match")
+
+	var before int
+	flag.IntVar(&before, "B", 0, "print N lines of leading context before each match")
+
+	var context int
+	flag.IntVar(&context, "C", 0, "print N lines of leading and trailing context around each match")
 
 	flag.Parse()
 
@@ -93,21 +133,28 @@ func main() {
 		pat.Pattern = "(" + strings.Join(pat.Patterns, "|") + ")"
 	}
 
+	ctxArgs := contextArgs(pat, after, before, context)
+
 	if dumpMode {
-		fmt.Printf("grep %v %q %v\n", pat.Flags, pat.Pattern, files)
+		ctx := ""
+		if len(ctxArgs) > 0 {
+			ctx = strings.Join(ctxArgs, " ") + " "
+		}
+		fmt.Printf("grep %v %s%q %v\n", pat.Flags, ctx, pat.Pattern, files)
 
 	} else {
-		var cmd *exec.Cmd
 		operator := "grep"
 		if pat.Engine != "" {
 			operator = pat.Engine
 		}
 
-		if stdinIsPipe() {
-			cmd = exec.Command(operator, pat.Flags, pat.Pattern)
-		} else {
-			cmd = exec.Command(operator, pat.Flags, pat.Pattern, files)
+		args := append([]string{pat.Flags}, ctxArgs...)
+		args = append(args, pat.Pattern)
+		if !stdinIsPipe() {
+			args = append(args, files)
 		}
+
+		cmd := exec.Command(operator, args...)
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
