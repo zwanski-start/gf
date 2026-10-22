@@ -108,13 +108,14 @@ In order to utilize a different engine, add `engine: <other tool>` to the releva
 If you've got Go installed and configured you can install `gf` with:
 
 ```
-▶ go get -u github.com/tomnomnom/gf
+▶ go install -v github.com/tomnomnom/gf@latest
 ```
 
-If you've installed using `go get`, you can enable auto-completion to your `.bashrc` like this:
+`go install` places the source in the Go module cache rather than in `$GOPATH/src`. You can
+enable auto-completion by adding the completion script to your `.bashrc` like this:
 
 ```
-▶ echo 'source $GOPATH/src/github.com/tomnomnom/gf/gf-completion.bash' >> ~/.bashrc
+▶ echo "source $(go list -m -f '{{.Dir}}' github.com/tomnomnom/gf@latest)/gf-completion.bash" >> ~/.bashrc
 ```
 
 Note that you'll have to restart your terminal, or run `source ~/.bashrc` for the changes to
@@ -123,8 +124,11 @@ take effect.
 To get started quickly, you can copy the example pattern files to `~/.gf` like this:
 
 ```
-▶ cp -r $GOPATH/src/github.com/tomnomnom/gf/examples ~/.gf
+▶ cp -r "$(go list -m -f '{{.Dir}}' github.com/tomnomnom/gf@latest)/examples" ~/.gf
+▶ chmod -R u+w ~/.gf
 ```
+
+Files in the module cache are read-only, so the `chmod` makes the copies editable.
 
 My personal patterns that I've included as examples might not be very useful to you, but hopefully
 they're still a reasonable point of reference.
