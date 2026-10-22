@@ -35,7 +35,12 @@ func main() {
 		pats, err := getPatterns()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%s\n", err)
-			return
+			os.Exit(1)
+		}
+
+		if len(pats) == 0 {
+			printNoPatternsHelp()
+			os.Exit(1)
 		}
 
 		fmt.Println(strings.Join(pats, "\n"))
@@ -55,6 +60,11 @@ func main() {
 	}
 
 	patName := flag.Arg(0)
+	if patName == "" {
+		fmt.Fprintln(os.Stderr, "usage: gf [-list|-dump|-save] <pattern-name> [file|dir]")
+		os.Exit(1)
+	}
+
 	files := flag.Arg(1)
 	if files == "" {
 		files = "."
@@ -63,14 +73,20 @@ func main() {
 	patDir, err := getPatternDir()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "unable to open user's pattern directory")
-		return
+		os.Exit(1)
 	}
 
 	filename := filepath.Join(patDir, patName+".json")
 	f, err := os.Open(filename)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "no such pattern")
-		return
+		fmt.Fprintf(os.Stderr, "no such pattern '%s' (looked for %s)\n", patName, filename)
+
+		if pats, _ := getPatterns(); len(pats) == 0 {
+			printNoPatternsHelp()
+		} else {
+			fmt.Fprintln(os.Stderr, "run 'gf -list' to see the available patterns")
+		}
+		os.Exit(1)
 	}
 	defer f.Close()
 
@@ -103,7 +119,12 @@ func main() {
 			operator = pat.Engine
 		}
 
-		if stdinIsPipe() {
+		if stdinIsPipe() && operator == "grep" {
+			// grep ignores stdin when -r is used without a file operand
+			// and searches the working directory instead, so ask for
+			// stdin explicitly with "-"
+			cmd = exec.Command(operator, pat.Flags, pat.Pattern, "-")
+		} else if stdinIsPipe() {
 			cmd = exec.Command(operator, pat.Flags, pat.Pattern)
 		} else {
 			cmd = exec.Command(operator, pat.Flags, pat.Pattern, files)
@@ -127,6 +148,25 @@ func getPatternDir() (string, error) {
 		return path, nil
 	}
 	return filepath.Join(usr.HomeDir, ".gf"), nil
+}
+
+// printNoPatternsHelp explains where gf looks for pattern files; installing
+// the binary with go install does not install any patterns.
+func printNoPatternsHelp() {
+	patDir, err := getPatternDir()
+	if err != nil {
+		patDir = "~/.gf"
+	}
+
+	fmt.Fprintf(os.Stderr, "no pattern files found in %s\n\n", patDir)
+	fmt.Fprintln(os.Stderr, "gf does not ship with any installed patterns. To get started, copy the")
+	fmt.Fprintln(os.Stderr, "example pattern files from the gf repository into that directory, e.g:")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "    git clone https://github.com/tomnomnom/gf")
+	fmt.Fprintf(os.Stderr, "    mkdir -p %s\n", patDir)
+	fmt.Fprintf(os.Stderr, "    cp gf/examples/*.json %s/\n", patDir)
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "or create your own with: gf -save <name> <flags> <pattern>")
 }
 
 func savePattern(name, flags, pat string) error {

@@ -108,22 +108,34 @@ In order to utilize a different engine, add `engine: <other tool>` to the releva
 If you've got Go installed and configured you can install `gf` with:
 
 ```
-▶ go get -u github.com/tomnomnom/gf
+▶ go install github.com/tomnomnom/gf@latest
 ```
 
-If you've installed using `go get`, you can enable auto-completion to your `.bashrc` like this:
+Installing the binary does **not** install any pattern files, so until you add some, `gf -list` will
+report that no patterns were found and `gf <name>` will report `no such pattern`. To get started quickly,
+clone the repository and copy the example pattern files to `~/.gf`:
 
 ```
-▶ echo 'source $GOPATH/src/github.com/tomnomnom/gf/gf-completion.bash' >> ~/.bashrc
+▶ git clone https://github.com/tomnomnom/gf
+▶ mkdir -p ~/.gf
+▶ cp gf/examples/*.json ~/.gf
+```
+
+You can enable auto-completion by sourcing the completion script from the cloned repository
+in your `.bashrc` like this:
+
+```
+▶ echo "source $(pwd)/gf/gf-completion.bash" >> ~/.bashrc
 ```
 
 Note that you'll have to restart your terminal, or run `source ~/.bashrc` for the changes to
 take effect.
 
-To get started quickly, you can copy the example pattern files to `~/.gf` like this:
+Once you have some patterns, you can search files and directories, or pipe input in:
 
 ```
-▶ cp -r $GOPATH/src/github.com/tomnomnom/gf/examples ~/.gf
+▶ gf aws-keys some-dir/
+▶ cat urls.txt | gf urls
 ```
 
 My personal patterns that I've included as examples might not be very useful to you, but hopefully
