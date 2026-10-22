@@ -129,6 +129,30 @@ To get started quickly, you can copy the example pattern files to `~/.gf` like t
 My personal patterns that I've included as examples might not be very useful to you, but hopefully
 they're still a reasonable point of reference.
 
+`gf` doesn't ship with any patterns built in: if `gf -list` prints nothing (or `no patterns found in ...`)
+it means the pattern directory is empty or missing. `gf` looks in `~/.config/gf` if it exists, and `~/.gf` otherwise.
+
+### Windows
+
+On Windows `~` is your user profile directory (`%USERPROFILE%`, e.g. `C:\Users\you`), so the pattern
+files belong in `%USERPROFILE%\.gf` (or `%USERPROFILE%\.config\gf`). From a clone of this repo, in PowerShell:
+
+```
+PS> New-Item -ItemType Directory -Force "$env:USERPROFILE\.gf"
+PS> Copy-Item .\examples\*.json "$env:USERPROFILE\.gf\"
+PS> gf -list
+```
+
+Or in `cmd.exe`:
+
+```
+> mkdir "%USERPROFILE%\.gf"
+> copy examples\*.json "%USERPROFILE%\.gf\"
+```
+
+Note that `gf` runs `grep` (or the pattern's `engine`) to do the actual searching, so you'll also need a
+`grep` on your `PATH`, e.g. from [Git for Windows](https://gitforwindows.org/) (Git Bash), MSYS2 or WSL.
+
 ## Contributing
 
 I'd actually be most interested in new pattern files! If you've got something you regularly grep for
