@@ -66,10 +66,28 @@ func main() {
 		return
 	}
 
+	if patName == "" {
+		fmt.Fprintln(os.Stderr, "usage: gf pattern-name [files]")
+		fmt.Fprintln(os.Stderr, "run 'gf -list' to see the available patterns")
+		return
+	}
+
 	filename := filepath.Join(patDir, patName+".json")
 	f, err := os.Open(filename)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "no such pattern")
+		// Help users who haven't set up any patterns yet. This is by far the
+		// most common reason gf "doesn't work": the pattern files live in the
+		// examples directory and have to be copied into the pattern directory
+		// before they can be used (see https://github.com/tomnomnom/gf/issues/56).
+		pats, _ := getPatterns()
+		if len(pats) == 0 {
+			fmt.Fprintf(os.Stderr, "no patterns found in '%s'\n", patDir)
+			fmt.Fprintln(os.Stderr, "copy the example pattern files into that directory to get started, e.g:")
+			fmt.Fprintf(os.Stderr, "  cp -r $GOPATH/src/github.com/tomnomnom/gf/examples/* %s/\n", patDir)
+			return
+		}
+		fmt.Fprintf(os.Stderr, "no such pattern: '%s'\n", patName)
+		fmt.Fprintln(os.Stderr, "run 'gf -list' to see the available patterns")
 		return
 	}
 	defer f.Close()
