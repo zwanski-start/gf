@@ -54,6 +54,27 @@ You can use the `-save` flag to create pattern files from the command line:
 ▶ gf -save php-serialized -HnrE '(a:[0-9]+:{|O:[0-9]+:"|s:[0-9]+:")'
 ```
 
+### Using multiple patterns at once
+
+You can pass more than one pattern name and each of them will be run in turn:
+
+```
+▶ cat urls.txt | gf xss sqli ssrf | anew output.txt
+```
+
+When searching files rather than stdin, the file (or directory) to search goes after the pattern names:
+
+```
+▶ gf php-sources php-sinks src/
+```
+
+Any leading arguments that are names of patterns are treated as patterns; the first argument that isn't
+is the file to search. If that file happens to share its name with a pattern, it's still treated as a file
+as long as it exists on disk.
+
+Each pattern runs separately, so a line that matches more than one pattern is printed once per match.
+Pipe through `sort -u` or `anew` if you want each line only once.
+
 ### Auto Complete
 
 There's an auto-complete script included, so you can hit 'tab' to show you what your options are:

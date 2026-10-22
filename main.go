@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/user"
@@ -54,10 +56,9 @@ func main() {
 		return
 	}
 
-	patName := flag.Arg(0)
-	files := flag.Arg(1)
-	if files == "" {
-		files = "."
+	if flag.NArg() == 0 {
+		fmt.Fprintln(os.Stderr, "usage: gf [options] <pattern-name> [<pattern-name>...] [<files>]")
+		return
 	}
 
 	patDir, err := getPatternDir()
@@ -66,54 +67,124 @@ func main() {
 		return
 	}
 
-	filename := filepath.Join(patDir, patName+".json")
-	f, err := os.Open(filename)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "no such pattern")
-		return
-	}
-	defer f.Close()
-
-	pat := pattern{}
-	dec := json.NewDecoder(f)
-	err = dec.Decode(&pat)
-
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "pattern file '%s' is malformed: %s\n", filename, err)
-		return
+	// The first argument is always a pattern name. Any following arguments
+	// that are also pattern names are treated as extra patterns, e.g:
+	//   cat urls | gf xss sqli ssrf
+	// The first argument that isn't a pattern name, and everything after it,
+	// are the files to search. When stdin isn't a pipe, an argument that
+	// exists on disk is always a file so that `gf name file` keeps working
+	// even if 'file' happens to also be the name of a pattern.
+	pipe := stdinIsPipe()
+	patNames := []string{flag.Arg(0)}
+	args := flag.Args()[1:]
+	for len(args) > 0 && patternExists(patDir, args[0]) && (pipe || !pathExists(args[0])) {
+		patNames = append(patNames, args[0])
+		args = args[1:]
 	}
 
-	if pat.Pattern == "" {
-		// check for multiple patterns
-		if len(pat.Patterns) == 0 {
-			fmt.Fprintf(os.Stderr, "pattern file '%s' contains no pattern(s)\n", filename)
+	files := "."
+	if len(args) > 0 {
+		files = args[0]
+	}
+
+	pats := make([]pattern, 0, len(patNames))
+	for _, patName := range patNames {
+		pat, err := loadPattern(patDir, patName)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s\n", err)
 			return
 		}
-
-		pat.Pattern = "(" + strings.Join(pat.Patterns, "|") + ")"
+		pats = append(pats, pat)
 	}
 
 	if dumpMode {
-		fmt.Printf("grep %v %q %v\n", pat.Flags, pat.Pattern, files)
+		for _, pat := range pats {
+			fmt.Printf("%s %v %q %v\n", pat.operator(), pat.Flags, pat.Pattern, files)
+		}
+		return
+	}
 
-	} else {
+	// stdin can only be read once, so if there's more than one pattern
+	// to run against it we need to keep a copy of it for each command
+	var input []byte
+	if pipe && len(pats) > 1 {
+		input, err = ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to read stdin: %s\n", err)
+			return
+		}
+	}
+
+	for _, pat := range pats {
 		var cmd *exec.Cmd
-		operator := "grep"
-		if pat.Engine != "" {
-			operator = pat.Engine
+		if pipe {
+			cmd = exec.Command(pat.operator(), pat.Flags, pat.Pattern)
+		} else {
+			cmd = exec.Command(pat.operator(), pat.Flags, pat.Pattern, files)
 		}
 
-		if stdinIsPipe() {
-			cmd = exec.Command(operator, pat.Flags, pat.Pattern)
+		if input != nil {
+			cmd.Stdin = bytes.NewReader(input)
 		} else {
-			cmd = exec.Command(operator, pat.Flags, pat.Pattern, files)
+			cmd.Stdin = os.Stdin
 		}
-		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		cmd.Run()
 	}
 
+}
+
+// operator returns the command used to run the pattern
+func (p pattern) operator() string {
+	if p.Engine != "" {
+		return p.Engine
+	}
+	return "grep"
+}
+
+// patternExists reports whether a pattern file with the given name exists
+func patternExists(patDir, name string) bool {
+	if name == "" {
+		return false
+	}
+	info, err := os.Stat(filepath.Join(patDir, name+".json"))
+	return err == nil && !info.IsDir()
+}
+
+// pathExists reports whether a file or directory exists at path
+func pathExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+// loadPattern reads and validates the named pattern file
+func loadPattern(patDir, name string) (pattern, error) {
+	pat := pattern{}
+
+	filename := filepath.Join(patDir, name+".json")
+	f, err := os.Open(filename)
+	if err != nil {
+		return pat, fmt.Errorf("no such pattern: %s", name)
+	}
+	defer f.Close()
+
+	dec := json.NewDecoder(f)
+	err = dec.Decode(&pat)
+	if err != nil {
+		return pat, fmt.Errorf("pattern file '%s' is malformed: %s", filename, err)
+	}
+
+	if pat.Pattern == "" {
+		// check for multiple patterns
+		if len(pat.Patterns) == 0 {
+			return pat, fmt.Errorf("pattern file '%s' contains no pattern(s)", filename)
+		}
+
+		pat.Pattern = "(" + strings.Join(pat.Patterns, "|") + ")"
+	}
+
+	return pat, nil
 }
 
 func getPatternDir() (string, error) {
