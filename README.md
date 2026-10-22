@@ -23,7 +23,7 @@ becomes simply:
 
 ### Pattern Files
 
-The pattern definitions are stored in `~/.gf` as little JSON files that can be kept under version control:
+The pattern definitions are stored in `~/.gf` (or `~/.config/gf`) as little JSON files that can be kept under version control:
 
 ```
 ▶ cat ~/.gf/php-sources.json
@@ -108,13 +108,20 @@ In order to utilize a different engine, add `engine: <other tool>` to the releva
 If you've got Go installed and configured you can install `gf` with:
 
 ```
-▶ go get -u github.com/tomnomnom/gf
+▶ go install github.com/tomnomnom/gf@latest
 ```
 
-If you've installed using `go get`, you can enable auto-completion to your `.bashrc` like this:
+`go install` only installs the binary; the pattern files and completion scripts aren't put anywhere
+you'd find them, so clone the repository to get them:
 
 ```
-▶ echo 'source $GOPATH/src/github.com/tomnomnom/gf/gf-completion.bash' >> ~/.bashrc
+▶ git clone https://github.com/tomnomnom/gf ~/src/gf
+```
+
+Then enable auto-completion in your `.bashrc` like this:
+
+```
+▶ echo 'source ~/src/gf/gf-completion.bash' >> ~/.bashrc
 ```
 
 Note that you'll have to restart your terminal, or run `source ~/.bashrc` for the changes to
@@ -123,8 +130,13 @@ take effect.
 To get started quickly, you can copy the example pattern files to `~/.gf` like this:
 
 ```
-▶ cp -r $GOPATH/src/github.com/tomnomnom/gf/examples ~/.gf
+▶ mkdir -p ~/.gf
+▶ cp ~/src/gf/examples/*.json ~/.gf
 ```
+
+`gf` looks for pattern files in both `~/.config/gf` and `~/.gf`. If a pattern with the same name exists
+in both, the one in `~/.config/gf` wins. New patterns created with `gf -save` go into `~/.config/gf` if
+that directory exists, and into `~/.gf` otherwise. Run `gf -list` to check which patterns `gf` can see.
 
 My personal patterns that I've included as examples might not be very useful to you, but hopefully
 they're still a reasonable point of reference.
