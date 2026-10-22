@@ -111,6 +111,16 @@ If you've got Go installed and configured you can install `gf` with:
 ▶ go get -u github.com/tomnomnom/gf
 ```
 
+The `gf` binary is installed to `$GOPATH/bin` (usually `~/go/bin`), which needs to be in your `$PATH`.
+If running `gf` gives you `gf: command not found`, add it to your `.bashrc`, `.zshrc` or similar:
+
+```
+▶ echo 'export PATH="$PATH:$(go env GOPATH)/bin"' >> ~/.bashrc
+```
+
+The auto-complete scripts call `gf -list` to find the available patterns, so they won't
+suggest anything until `gf` is in your `$PATH`.
+
 If you've installed using `go get`, you can enable auto-completion to your `.bashrc` like this:
 
 ```
