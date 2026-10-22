@@ -102,6 +102,31 @@ In order to utilize a different engine, add `engine: <other tool>` to the releva
 ```
 * Note: Different engines use different flags, so in the example above, the flag `E` has to be removed from the `aws-keys.json` file in order for ag to successfully run.
 
+#### Multiple engines
+
+A pattern file can also list several engines, each with its own flags and pattern. The top-level keys
+are the commands to run; `gf` uses the first one that is installed (found in your `$PATH`), in the order
+they appear in the file. This lets you prefer a faster tool such as [ripgrep](https://github.com/BurntSushi/ripgrep)
+while still falling back to plain `grep` on machines that don't have it:
+
+```
+▶ cat ~/.gf/urls.json
+{
+    "rg": {
+        "flags": "-oiaIN",
+        "pattern": "https?://[^\"\\'> ]+"
+    },
+    "grep": {
+        "flags": "-oriahE",
+        "pattern": "https?://[^\"\\'> ]+"
+    }
+}
+```
+
+Each engine section accepts `flags` and either `pattern` or `patterns`, just like a single-engine pattern file.
+`flags` is split on whitespace, so you can pass several separate options (e.g. `"-oIN --no-heading"`).
+Use `gf -dump <pattern>` to see which command would be run.
+
 
 ## Install
 

@@ -27,7 +27,7 @@ func main() {
 	flag.BoolVar(&listMode, "list", false, "list available patterns")
 
 	var dumpMode bool
-	flag.BoolVar(&dumpMode, "dump", false, "prints the grep command rather than executing it")
+	flag.BoolVar(&dumpMode, "dump", false, "prints the command rather than executing it")
 
 	flag.Parse()
 
@@ -74,12 +74,15 @@ func main() {
 	}
 	defer f.Close()
 
-	pat := pattern{}
-	dec := json.NewDecoder(f)
-	err = dec.Decode(&pat)
-
+	backends, err := parsePatternFile(f)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "pattern file '%s' is malformed: %s\n", filename, err)
+		return
+	}
+
+	pat, ok := selectBackend(backends, exec.LookPath)
+	if !ok {
+		fmt.Fprintf(os.Stderr, "pattern file '%s': none of the engines (%s) could be found\n", filename, engineNames(backends))
 		return
 	}
 
@@ -93,21 +96,18 @@ func main() {
 		pat.Pattern = "(" + strings.Join(pat.Patterns, "|") + ")"
 	}
 
+	operator := pat.engine()
+
 	if dumpMode {
-		fmt.Printf("grep %v %q %v\n", pat.Flags, pat.Pattern, files)
+		fmt.Printf("%s %v %q %v\n", operator, pat.Flags, pat.Pattern, files)
 
 	} else {
-		var cmd *exec.Cmd
-		operator := "grep"
-		if pat.Engine != "" {
-			operator = pat.Engine
+		args := append(strings.Fields(pat.Flags), pat.Pattern)
+		if !stdinIsPipe() {
+			args = append(args, files)
 		}
 
-		if stdinIsPipe() {
-			cmd = exec.Command(operator, pat.Flags, pat.Pattern)
-		} else {
-			cmd = exec.Command(operator, pat.Flags, pat.Pattern, files)
-		}
+		cmd := exec.Command(operator, args...)
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
