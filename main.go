@@ -55,9 +55,19 @@ func main() {
 	}
 
 	patName := flag.Arg(0)
-	files := flag.Arg(1)
-	if files == "" {
-		files = "."
+
+	// Any arguments after the pattern name are files or directories
+	// to search. If none are given we read from stdin when it's a pipe,
+	// and otherwise search the current directory. An explicit file
+	// argument always wins over stdin, so that gf behaves correctly
+	// when stdin happens to be a pipe (e.g. inside a `while read` loop).
+	files := flag.Args()
+	if len(files) > 0 {
+		files = files[1:]
+	}
+	useStdin := len(files) == 0 && stdinIsPipe()
+	if len(files) == 0 && !useStdin {
+		files = []string{"."}
 	}
 
 	patDir, err := getPatternDir()
@@ -94,7 +104,7 @@ func main() {
 	}
 
 	if dumpMode {
-		fmt.Printf("grep %v %q %v\n", pat.Flags, pat.Pattern, files)
+		fmt.Printf("grep %v %q %v\n", pat.Flags, pat.Pattern, strings.Join(files, " "))
 
 	} else {
 		var cmd *exec.Cmd
@@ -103,12 +113,11 @@ func main() {
 			operator = pat.Engine
 		}
 
-		if stdinIsPipe() {
-			cmd = exec.Command(operator, pat.Flags, pat.Pattern)
-		} else {
-			cmd = exec.Command(operator, pat.Flags, pat.Pattern, files)
+		args := append([]string{pat.Flags, pat.Pattern}, files...)
+		cmd = exec.Command(operator, args...)
+		if useStdin {
+			cmd.Stdin = os.Stdin
 		}
-		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		cmd.Run()
