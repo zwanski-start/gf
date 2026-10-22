@@ -12,8 +12,32 @@ import (
 	"strings"
 )
 
+// flagList holds the flags to pass to the search engine. In a pattern file
+// it can be written either as a single string (e.g. "-HnrE --include=*.php"),
+// which is split on whitespace, or as an array of individual arguments.
+type flagList []string
+
+func (f *flagList) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err == nil {
+		*f = strings.Fields(s)
+		return nil
+	}
+
+	var l []string
+	if err := json.Unmarshal(b, &l); err != nil {
+		return errors.New("flags must be a string or an array of strings")
+	}
+	*f = l
+	return nil
+}
+
+func (f flagList) MarshalJSON() ([]byte, error) {
+	return json.Marshal(strings.Join(f, " "))
+}
+
 type pattern struct {
-	Flags    string   `json:"flags,omitempty"`
+	Flags    flagList `json:"flags,omitempty"`
 	Pattern  string   `json:"pattern,omitempty"`
 	Patterns []string `json:"patterns,omitempty"`
 	Engine   string   `json:"engine,omitempty"`
@@ -94,7 +118,7 @@ func main() {
 	}
 
 	if dumpMode {
-		fmt.Printf("grep %v %q %v\n", pat.Flags, pat.Pattern, files)
+		fmt.Printf("grep %v %q %v\n", strings.Join(pat.Flags, " "), pat.Pattern, files)
 
 	} else {
 		var cmd *exec.Cmd
@@ -103,11 +127,12 @@ func main() {
 			operator = pat.Engine
 		}
 
-		if stdinIsPipe() {
-			cmd = exec.Command(operator, pat.Flags, pat.Pattern)
-		} else {
-			cmd = exec.Command(operator, pat.Flags, pat.Pattern, files)
+		args := append([]string{}, pat.Flags...)
+		args = append(args, pat.Pattern)
+		if !stdinIsPipe() {
+			args = append(args, files)
 		}
+		cmd = exec.Command(operator, args...)
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -139,7 +164,7 @@ func savePattern(name, flags, pat string) error {
 	}
 
 	p := &pattern{
-		Flags:   flags,
+		Flags:   strings.Fields(flags),
 		Pattern: pat,
 	}
 

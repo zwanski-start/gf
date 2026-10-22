@@ -46,6 +46,26 @@ To help reduce pattern length and complexity a little, you can specify a list of
 }
 ```
 
+You can pass multiple flags, including long options like `--include`, by separating them with spaces:
+
+```
+▶ cat ~/.gf/php-sources-include.json
+{
+    "flags": "-HnrE --include=*.php",
+    "pattern": "(\\$_(POST|GET|COOKIE|REQUEST|SERVER|FILES)|php://(input|stdin))"
+}
+```
+
+If a flag needs to contain a space, specify `flags` as a list instead; each item is passed to grep as a separate argument:
+
+```
+▶ cat ~/.gf/php-sources-exclude.json
+{
+    "flags": ["-HnrE", "--include=*.php", "--exclude-dir=vendor"],
+    "pattern": "(\\$_(POST|GET|COOKIE|REQUEST|SERVER|FILES)|php://(input|stdin))"
+}
+```
+
 There are some more example pattern files in the `examples` directory.
 
 You can use the `-save` flag to create pattern files from the command line:
