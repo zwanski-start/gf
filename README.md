@@ -105,16 +105,36 @@ In order to utilize a different engine, add `engine: <other tool>` to the releva
 
 ## Install
 
-If you've got Go installed and configured you can install `gf` with:
+If you've got Go (1.16 or newer) installed and configured you can install `gf` with:
 
 ```
-▶ go get -u github.com/tomnomnom/gf
+▶ go install github.com/tomnomnom/gf@latest
 ```
 
-If you've installed using `go get`, you can enable auto-completion to your `.bashrc` like this:
+The `gf` binary is placed in `$(go env GOPATH)/bin` (usually `~/go/bin`). If running `gf`
+afterwards gives you a "command not found" error, that directory isn't in your `PATH` yet;
+add it to your `.bashrc` like this:
 
 ```
-▶ echo 'source $GOPATH/src/github.com/tomnomnom/gf/gf-completion.bash' >> ~/.bashrc
+▶ echo 'export PATH="$PATH:$(go env GOPATH)/bin"' >> ~/.bashrc
+```
+
+Note: since Go 1.17 `go get` no longer builds and installs binaries (and since Go 1.22 it can't
+be used outside of a module at all), so the older `go get -u github.com/tomnomnom/gf`
+instruction will appear to do nothing. Use `go install` as shown above instead.
+
+`go install` doesn't leave a copy of the source anywhere convenient, so to get the
+auto-completion scripts and example patterns, clone the repository:
+
+```
+▶ git clone https://github.com/tomnomnom/gf.git ~/gf
+```
+
+You can then enable auto-completion in your `.bashrc` like this (there are also
+`gf-completion.zsh` and `gf-completion.fish` scripts for other shells):
+
+```
+▶ echo 'source ~/gf/gf-completion.bash' >> ~/.bashrc
 ```
 
 Note that you'll have to restart your terminal, or run `source ~/.bashrc` for the changes to
@@ -123,7 +143,7 @@ take effect.
 To get started quickly, you can copy the example pattern files to `~/.gf` like this:
 
 ```
-▶ cp -r $GOPATH/src/github.com/tomnomnom/gf/examples ~/.gf
+▶ mkdir -p ~/.gf && cp ~/gf/examples/*.json ~/.gf
 ```
 
 My personal patterns that I've included as examples might not be very useful to you, but hopefully
