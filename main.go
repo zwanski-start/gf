@@ -83,7 +83,7 @@ func main() {
 		if len(pats) == 0 {
 			fmt.Fprintf(os.Stderr, "no patterns found in '%s'\n", patDir)
 			fmt.Fprintln(os.Stderr, "copy the example pattern files into that directory to get started, e.g:")
-			fmt.Fprintf(os.Stderr, "  cp -r $GOPATH/src/github.com/tomnomnom/gf/examples/* %s/\n", patDir)
+			fmt.Fprintf(os.Stderr, "  mkdir -p %s && cp -r $GOPATH/src/github.com/tomnomnom/gf/examples/* %s/\n", patDir, patDir)
 			return
 		}
 		fmt.Fprintf(os.Stderr, "no such pattern: '%s'\n", patName)
