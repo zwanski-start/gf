@@ -129,6 +129,28 @@ To get started quickly, you can copy the example pattern files to `~/.gf` like t
 My personal patterns that I've included as examples might not be very useful to you, but hopefully
 they're still a reasonable point of reference.
 
+### Windows
+
+`gf` builds and runs on Windows, but it only wraps `grep` (or whichever `engine` a pattern
+file names), and Windows doesn't ship `grep`. You need one of:
+
+* [Git for Windows](https://gitforwindows.org/): run `gf` from Git Bash, or add Git's
+  `usr\bin` directory (e.g. `C:\Program Files\Git\usr\bin`) to your `PATH`
+* [MSYS2](https://www.msys2.org/) or [Cygwin](https://www.cygwin.com/) with the `grep` package
+* [WSL](https://learn.microsoft.com/windows/wsl/), where you can use the normal Linux install instead
+* A grep alternative such as [ripgrep](https://github.com/BurntSushi/ripgrep) set as the
+  pattern's `engine` (adjust the `flags` to match)
+
+Pattern files live in `%USERPROFILE%\.gf` (or `%USERPROFILE%\.config\gf` if it exists), so to
+copy the examples from PowerShell:
+
+```
+▶ Copy-Item -Recurse examples $env:USERPROFILE\.gf
+```
+
+If `gf` can't find `grep` (or the pattern's engine) it will tell you, rather than silently
+printing nothing.
+
 ## Contributing
 
 I'd actually be most interested in new pattern files! If you've got something you regularly grep for

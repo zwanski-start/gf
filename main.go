@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"os/user"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -103,6 +103,14 @@ func main() {
 			operator = pat.Engine
 		}
 
+		if _, err := exec.LookPath(operator); err != nil {
+			fmt.Fprintf(os.Stderr, "unable to find '%s' in your PATH: %s\n", operator, err)
+			if runtime.GOOS == "windows" {
+				fmt.Fprintln(os.Stderr, "gf needs grep (or the pattern's engine) to be installed; on Windows you can get grep from Git for Windows, MSYS2, Cygwin or WSL")
+			}
+			os.Exit(1)
+		}
+
 		if stdinIsPipe() {
 			cmd = exec.Command(operator, pat.Flags, pat.Pattern)
 		} else {
@@ -117,16 +125,16 @@ func main() {
 }
 
 func getPatternDir() (string, error) {
-	usr, err := user.Current()
+	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
-	path := filepath.Join(usr.HomeDir, ".config/gf")
+	path := filepath.Join(home, ".config", "gf")
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
 		// .config/gf exists
 		return path, nil
 	}
-	return filepath.Join(usr.HomeDir, ".gf"), nil
+	return filepath.Join(home, ".gf"), nil
 }
 
 func savePattern(name, flags, pat string) error {
@@ -175,7 +183,7 @@ func getPatterns() ([]string, error) {
 	}
 	_ = patDir
 
-	files, err := filepath.Glob(patDir + "/*.json")
+	files, err := filepath.Glob(filepath.Join(patDir, "*.json"))
 	if err != nil {
 		return out, err
 	}
