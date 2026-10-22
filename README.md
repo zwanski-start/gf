@@ -108,13 +108,21 @@ In order to utilize a different engine, add `engine: <other tool>` to the releva
 If you've got Go installed and configured you can install `gf` with:
 
 ```
-▶ go get -u github.com/tomnomnom/gf
+▶ go install github.com/tomnomnom/gf@latest
 ```
 
-If you've installed using `go get`, you can enable auto-completion to your `.bashrc` like this:
+`go install` only installs the `gf` binary (to `$(go env GOPATH)/bin`); it does not put the
+source, the auto-complete scripts or the example patterns in `$GOPATH/src`. To get those, clone
+the repository somewhere you'll keep it:
 
 ```
-▶ echo 'source $GOPATH/src/github.com/tomnomnom/gf/gf-completion.bash' >> ~/.bashrc
+▶ git clone https://github.com/tomnomnom/gf.git ~/.gf-src
+```
+
+You can then enable auto-completion in your `.bashrc` like this:
+
+```
+▶ echo 'source ~/.gf-src/gf-completion.bash' >> ~/.bashrc
 ```
 
 Note that you'll have to restart your terminal, or run `source ~/.bashrc` for the changes to
@@ -123,8 +131,25 @@ take effect.
 To get started quickly, you can copy the example pattern files to `~/.gf` like this:
 
 ```
-▶ cp -r $GOPATH/src/github.com/tomnomnom/gf/examples ~/.gf
+▶ mkdir -p ~/.gf
+▶ cp ~/.gf-src/examples/*.json ~/.gf/
 ```
+
+If you'd rather not clone the repository, `go install` leaves a read-only copy of the source in
+the Go module cache, which you can copy the files from instead:
+
+```
+▶ GF_SRC=$(ls -d $(go env GOMODCACHE)/github.com/tomnomnom/gf@* | tail -n 1)
+▶ mkdir -p ~/.gf
+▶ cp $GF_SRC/examples/*.json ~/.gf/ && chmod u+w ~/.gf/*.json
+▶ cp $GF_SRC/gf-completion.bash ~/.gf-completion.bash && echo 'source ~/.gf-completion.bash' >> ~/.bashrc
+```
+
+Don't `source` the scripts directly from the module cache: the path contains the version and
+will disappear if you run `go clean -modcache`.
+
+If you're using an old version of Go (before 1.16) with `GOPATH` mode, `go get -u github.com/tomnomnom/gf`
+still works and places the files in `$GOPATH/src/github.com/tomnomnom/gf`.
 
 My personal patterns that I've included as examples might not be very useful to you, but hopefully
 they're still a reasonable point of reference.
