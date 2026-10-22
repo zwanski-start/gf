@@ -83,6 +83,7 @@ source ~/path/to/gf-completion.zsh
 
 Note: if you're using oh-my-zsh or similar you may find that `gf` is an alias for `git fetch`. You can either
 alias the gf binary to something else, or `unalias gf` to remove the `git fetch` alias.
+See [Troubleshooting](#troubleshooting) for details.
 
 ### Using custom engines
 
@@ -128,6 +129,44 @@ To get started quickly, you can copy the example pattern files to `~/.gf` like t
 
 My personal patterns that I've included as examples might not be very useful to you, but hopefully
 they're still a reasonable point of reference.
+
+## Troubleshooting
+
+### `fatal: '<pattern>' does not appear to be a git repository`
+
+If running something like `gf ssrf` gives you an error like this:
+
+```
+▶ echo 'http://example.com/?url=http://example.org' | gf ssrf
+fatal: 'ssrf' does not appear to be a git repository
+fatal: Could not read from remote repository.
+```
+
+then `gf` isn't running this tool at all: your shell has an alias called `gf` that runs `git fetch`.
+This alias is defined by the `git` plugin in [oh-my-zsh](https://github.com/ohmyzsh/ohmyzsh) (and
+some other shell frameworks), which is why `gf` can work on one machine but not on another with a
+different shell setup.
+
+You can check what `gf` refers to with:
+
+```
+▶ type gf
+gf is an alias for git fetch
+```
+
+To fix it, remove the alias by adding this to the end of your `~/.zshrc` (after oh-my-zsh is loaded):
+
+```
+unalias gf 2>/dev/null
+```
+
+Alternatively, alias the gf binary to a different name, for example:
+
+```
+alias gfp="$(go env GOPATH)/bin/gf"
+```
+
+Then restart your terminal, or run `source ~/.zshrc`, for the change to take effect.
 
 ## Contributing
 
