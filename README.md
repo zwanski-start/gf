@@ -102,6 +102,22 @@ In order to utilize a different engine, add `engine: <other tool>` to the releva
 ```
 * Note: Different engines use different flags, so in the example above, the flag `E` has to be removed from the `aws-keys.json` file in order for ag to successfully run.
 
+### Importing GrepBugs rules
+
+[GrepBugs](https://github.com/foospidy/GrepBugsRules) maintains a big list of regexes for finding
+potentially dangerous code in lots of languages. The `contrib/grepbugs` tool converts its
+`rules.json` into gf pattern files (one per language, named `grepbugs-<language>`):
+
+```
+▶ curl -s https://raw.githubusercontent.com/foospidy/GrepBugsRules/master/rules.json | go run contrib/grepbugs/main.go -o ~/.gf
+▶ gf grepbugs-php
+```
+
+The rules use PCRE syntax (e.g. lookbehinds), so the generated files use `grep -P` by default. If your
+grep doesn't support `-P` (e.g. on macOS) you can pick different flags with `-flags` and set an `engine`
+that understands PCRE. Existing files are never overwritten unless you pass `-f`; run with `-h` to see all
+the options.
+
 
 ## Install
 
