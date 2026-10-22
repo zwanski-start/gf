@@ -23,7 +23,8 @@ becomes simply:
 
 ### Pattern Files
 
-The pattern definitions are stored in `~/.gf` as little JSON files that can be kept under version control:
+The pattern definitions are stored in `~/.config/gf` or `~/.gf` as little JSON files that can be kept under version control.
+When run with `sudo` and root has no pattern directory, the patterns of the user who invoked `sudo` are used:
 
 ```
 ▶ cat ~/.gf/php-sources.json

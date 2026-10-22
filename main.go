@@ -121,12 +121,33 @@ func getPatternDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	path := filepath.Join(usr.HomeDir, ".config/gf")
-	if _, err := os.Stat(path); !os.IsNotExist(err) {
-		// .config/gf exists
-		return path, nil
+
+	if dir, ok := findPatternDir(usr.HomeDir); ok {
+		return dir, nil
 	}
+
+	// When running under sudo the current user is root, so the pattern
+	// directory of the user that invoked sudo is used if root has none
+	if sudoUser := os.Getenv("SUDO_USER"); sudoUser != "" && usr.Uid == "0" {
+		if su, err := user.Lookup(sudoUser); err == nil {
+			if dir, ok := findPatternDir(su.HomeDir); ok {
+				return dir, nil
+			}
+		}
+	}
+
 	return filepath.Join(usr.HomeDir, ".gf"), nil
+}
+
+// findPatternDir returns the first existing pattern directory under home
+func findPatternDir(home string) (string, bool) {
+	for _, d := range []string{".config/gf", ".gf"} {
+		path := filepath.Join(home, d)
+		if _, err := os.Stat(path); err == nil {
+			return path, true
+		}
+	}
+	return "", false
 }
 
 func savePattern(name, flags, pat string) error {
