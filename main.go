@@ -194,9 +194,19 @@ func getPatterns() ([]string, error) {
 func walkPatterns(patDir string, fn func(name, path string) bool) error {
 	done := errors.New("done")
 
-	err := filepath.Walk(patDir, func(path string, info os.FileInfo, err error) error {
+	// filepath.Walk doesn't follow a symlinked root (e.g. ~/.gf -> ~/Gf-Patterns),
+	// so resolve it first
+	root, err := filepath.EvalSymlinks(patDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+
+	err = filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			if path == patDir {
+			if path == root {
 				return err
 			}
 			// skip anything we can't read rather than failing outright
@@ -207,13 +217,14 @@ func walkPatterns(patDir string, fn func(name, path string) bool) error {
 			return nil
 		}
 
-		rel, err := filepath.Rel(patDir, path)
+		rel, err := filepath.Rel(root, path)
 		if err != nil {
 			return nil
 		}
 		name := filepath.ToSlash(strings.TrimSuffix(rel, ".json"))
 
-		if !fn(name, path) {
+		// report the path under patDir rather than the resolved root
+		if !fn(name, filepath.Join(patDir, rel)) {
 			return done
 		}
 		return nil

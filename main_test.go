@@ -93,3 +93,44 @@ func TestFindPatternFile(t *testing.T) {
 		}
 	}
 }
+
+func TestSymlinkedPatternDir(t *testing.T) {
+	dir := setupPatternDir(t)
+
+	linkParent, err := os.MkdirTemp("", "gf-test-link")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.RemoveAll(linkParent) })
+
+	link := filepath.Join(linkParent, ".gf")
+	if err := os.Symlink(dir, link); err != nil {
+		t.Skipf("symlinks not supported: %s", err)
+	}
+
+	var names []string
+	err = walkPatterns(link, func(name, path string) bool {
+		names = append(names, name)
+		return true
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sort.Strings(names)
+
+	want := []string{"secrets/aws-keys", "top", "web/inner/urls", "web/xss"}
+	if !reflect.DeepEqual(names, want) {
+		t.Errorf("got %v, want %v", names, want)
+	}
+
+	got, err := findPatternFile(link, "xss")
+	if err != nil {
+		t.Fatalf("xss: unexpected error: %s", err)
+	}
+	if want := filepath.Join(link, "web", "xss.json"); got != want {
+		t.Errorf("xss: got %s, want %s", got, want)
+	}
+	if _, err := os.Stat(got); err != nil {
+		t.Errorf("xss: returned path doesn't open: %s", err)
+	}
+}
