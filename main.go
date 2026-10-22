@@ -66,7 +66,12 @@ func main() {
 		return
 	}
 
-	filename := filepath.Join(patDir, patName+".json")
+	filename, err := findPatternFile(patDir, patName)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "no such pattern")
+		return
+	}
+
 	f, err := os.Open(filename)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "no such pattern")
@@ -173,19 +178,85 @@ func getPatterns() ([]string, error) {
 	if err != nil {
 		return out, fmt.Errorf("failed to determine pattern directory: %s", err)
 	}
-	_ = patDir
 
-	files, err := filepath.Glob(patDir + "/*.json")
+	err = walkPatterns(patDir, func(name, path string) bool {
+		out = append(out, name)
+		return true
+	})
+
+	return out, err
+}
+
+// walkPatterns calls fn for every pattern file in patDir, including those
+// in sub-directories. The name passed to fn is the pattern's path relative
+// to patDir, without the .json extension (e.g. "web/xss"). Walking stops
+// when fn returns false.
+func walkPatterns(patDir string, fn func(name, path string) bool) error {
+	done := errors.New("done")
+
+	err := filepath.Walk(patDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			if path == patDir {
+				return err
+			}
+			// skip anything we can't read rather than failing outright
+			return nil
+		}
+
+		if info.IsDir() || filepath.Ext(path) != ".json" {
+			return nil
+		}
+
+		rel, err := filepath.Rel(patDir, path)
+		if err != nil {
+			return nil
+		}
+		name := filepath.ToSlash(strings.TrimSuffix(rel, ".json"))
+
+		if !fn(name, path) {
+			return done
+		}
+		return nil
+	})
+
+	if err == done {
+		return nil
+	}
+	if os.IsNotExist(err) {
+		return nil
+	}
+	return err
+}
+
+// findPatternFile resolves a pattern name to a file. The name can be a path
+// relative to the pattern directory (e.g. "web/xss"); if no such file exists
+// the sub-directories are searched for a pattern with a matching file name.
+func findPatternFile(patDir, name string) (string, error) {
+	if name == "" {
+		return "", errors.New("no such pattern")
+	}
+
+	filename := filepath.Join(patDir, filepath.FromSlash(name)+".json")
+	if info, err := os.Stat(filename); err == nil && !info.IsDir() {
+		return filename, nil
+	}
+
+	found := ""
+	err := walkPatterns(patDir, func(n, path string) bool {
+		if strings.HasSuffix("/"+n, "/"+name) {
+			found = path
+			return false
+		}
+		return true
+	})
 	if err != nil {
-		return out, err
+		return "", err
+	}
+	if found == "" {
+		return "", errors.New("no such pattern")
 	}
 
-	for _, f := range files {
-		f = f[len(patDir)+1 : len(f)-5]
-		out = append(out, f)
-	}
-
-	return out, nil
+	return found, nil
 }
 
 func stdinIsPipe() bool {

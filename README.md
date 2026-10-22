@@ -48,6 +48,19 @@ To help reduce pattern length and complexity a little, you can specify a list of
 
 There are some more example pattern files in the `examples` directory.
 
+Pattern files can be organised into sub-directories. A pattern in a sub-directory can be
+used by its path relative to the pattern directory, or just by its name if that's enough
+to find it (the first match is used):
+
+```
+▶ ls ~/.gf/php
+php-sources.json  php-sinks.json
+▶ gf php/php-sources
+▶ gf php-sources
+```
+
+`gf -list` shows patterns in sub-directories by their relative path (e.g. `php/php-sources`).
+
 You can use the `-save` flag to create pattern files from the command line:
 
 ```
