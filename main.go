@@ -69,7 +69,7 @@ func main() {
 	filename := filepath.Join(patDir, patName+".json")
 	f, err := os.Open(filename)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "no such pattern")
+		fmt.Fprintf(os.Stderr, "no such pattern '%s' (looked for %s)\n", patName, filename)
 		return
 	}
 	defer f.Close()

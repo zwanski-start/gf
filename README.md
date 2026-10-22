@@ -73,16 +73,28 @@ source ~/path/to/gf-completion.bash
 
 #### Zsh
 
-To get auto-complete working you need to enable autocomplete (not needed if you have oh-my-zsh) using `autoload -U compaudit && compinit` or by putting it into `.zshrc`
-
-Then `source` the `gf-completion.zsh` file in your `.zshrc` or similar:
+To get auto-complete working, `source` the `gf-completion.zsh` file in your `.zshrc` or similar:
 
 ```
 source ~/path/to/gf-completion.zsh
 ```
 
-Note: if you're using oh-my-zsh or similar you may find that `gf` is an alias for `git fetch`. You can either
-alias the gf binary to something else, or `unalias gf` to remove the `git fetch` alias.
+The script runs `compinit` for you if the completion system isn't loaded yet. Alternatively, copy it into a
+directory in your `$fpath` as `_gf` and it will be picked up by `compinit`.
+
+If you're using oh-my-zsh, zprezto or similar, source the file *after* the framework is loaded, and note that
+their git plugin/module defines `gf` as an alias for `git fetch`. While that alias exists, typing `gf` runs
+`git fetch` and tab-completion completes `git fetch` instead of your patterns. You can either alias the gf
+binary to something else, or remove the `git fetch` alias after the framework is loaded:
+
+```
+# in ~/.zshrc, after oh-my-zsh/zprezto has been loaded
+unalias gf
+source ~/path/to/gf-completion.zsh
+```
+
+Completion lists the patterns in your pattern directory (`~/.config/gf` if it exists, otherwise `~/.gf`), so if
+`gf -list` prints nothing - or `gf` says `no such pattern` - copy some pattern files there first.
 
 ### Using custom engines
 
