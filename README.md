@@ -54,6 +54,12 @@ You can use the `-save` flag to create pattern files from the command line:
 ▶ gf -save php-serialized -HnrE '(a:[0-9]+:{|O:[0-9]+:"|s:[0-9]+:")'
 ```
 
+If a pattern file with that name already exists, `gf` won't overwrite it unless you add the `-f` flag:
+
+```
+▶ gf -save -f php-serialized -HnrE '(a:[0-9]+:{|O:[0-9]+:"|s:[0-9]+:")'
+```
+
 ### Auto Complete
 
 There's an auto-complete script included, so you can hit 'tab' to show you what your options are:

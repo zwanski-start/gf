@@ -23,6 +23,9 @@ func main() {
 	var saveMode bool
 	flag.BoolVar(&saveMode, "save", false, "save a pattern (e.g: gf -save pat-name -Hnri 'search-pattern')")
 
+	var forceSave bool
+	flag.BoolVar(&forceSave, "f", false, "overwrite an existing pattern file when saving (use with -save)")
+
 	var listMode bool
 	flag.BoolVar(&listMode, "list", false, "list available patterns")
 
@@ -47,7 +50,7 @@ func main() {
 		flags := flag.Arg(1)
 		pattern := flag.Arg(2)
 
-		err := savePattern(name, flags, pattern)
+		err := savePattern(name, flags, pattern, forceSave)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%s\n", err)
 		}
@@ -129,7 +132,7 @@ func getPatternDir() (string, error) {
 	return filepath.Join(usr.HomeDir, ".gf"), nil
 }
 
-func savePattern(name, flags, pat string) error {
+func savePattern(name, flags, pat string, force bool) error {
 	if name == "" {
 		return errors.New("name cannot be empty")
 	}
@@ -149,7 +152,15 @@ func savePattern(name, flags, pat string) error {
 	}
 
 	path := filepath.Join(patDir, name+".json")
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+	mode := os.O_RDWR | os.O_CREATE | os.O_EXCL
+	if force {
+		mode = os.O_RDWR | os.O_CREATE | os.O_TRUNC
+	}
+
+	f, err := os.OpenFile(path, mode, 0666)
+	if os.IsExist(err) {
+		return fmt.Errorf("pattern file '%s' already exists (use -f to overwrite)", path)
+	}
 	if err != nil {
 		return fmt.Errorf("failed to create pattern file: %s", err)
 	}
