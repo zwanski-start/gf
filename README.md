@@ -54,6 +54,22 @@ You can use the `-save` flag to create pattern files from the command line:
 ▶ gf -save php-serialized -HnrE '(a:[0-9]+:{|O:[0-9]+:"|s:[0-9]+:")'
 ```
 
+### Removing Similar Results
+
+When searching lists of URLs you'll often get many results that differ only by
+their parameter values. The `-dedupe` flag prints only the first of those lines:
+
+```
+▶ cat urls.txt | gf -dedupe idor
+https://example.com/invite?id=3454&ref=sedrt
+https://example.com/0auth?cat_id=78978&mode=null
+```
+
+Lines are compared after removing the values from `key=value` pairs that follow
+`?`, `&` or `;`. Everything else must match exactly, so flags like `-n` or `-H`
+that add line numbers or filenames to the output will stop lines from being
+treated as duplicates.
+
 ### Auto Complete
 
 There's an auto-complete script included, so you can hit 'tab' to show you what your options are:

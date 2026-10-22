@@ -1,14 +1,17 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -28,6 +31,9 @@ func main() {
 
 	var dumpMode bool
 	flag.BoolVar(&dumpMode, "dump", false, "prints the grep command rather than executing it")
+
+	var dedupeMode bool
+	flag.BoolVar(&dedupeMode, "dedupe", false, "only print the first of any lines that differ only by parameter values (e.g. ?id=1 and ?id=2)")
 
 	flag.Parse()
 
@@ -109,9 +115,26 @@ func main() {
 			cmd = exec.Command(operator, pat.Flags, pat.Pattern, files)
 		}
 		cmd.Stdin = os.Stdin
-		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
-		cmd.Run()
+
+		if !dedupeMode {
+			cmd.Stdout = os.Stdout
+			cmd.Run()
+			return
+		}
+
+		out, err := cmd.StdoutPipe()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to read %s output: %s\n", operator, err)
+			return
+		}
+		err = cmd.Start()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to run %s: %s\n", operator, err)
+			return
+		}
+		dedupe(out, os.Stdout)
+		cmd.Wait()
 	}
 
 }
@@ -186,6 +209,37 @@ func getPatterns() ([]string, error) {
 	}
 
 	return out, nil
+}
+
+// paramValueRe matches the value part of key=value pairs in query strings
+// and similar parameter lists (e.g. ?id=123&ref=abc or ;jsessionid=xyz)
+var paramValueRe = regexp.MustCompile(`([?&;][^=&;?#\s]*)=[^&;?#\s"'<>]*`)
+
+// dedupeKey returns a normalised version of a line where parameter
+// values have been removed, so that lines differing only by those
+// values produce the same key
+func dedupeKey(line string) string {
+	return paramValueRe.ReplaceAllString(line, "$1=")
+}
+
+// dedupe copies lines from r to w, skipping any line whose dedupeKey
+// has already been seen
+func dedupe(r io.Reader, w io.Writer) {
+	seen := make(map[string]bool)
+	sc := bufio.NewScanner(r)
+	sc.Buffer(make([]byte, 0, 64*1024), 16*1024*1024)
+	bw := bufio.NewWriter(w)
+	defer bw.Flush()
+
+	for sc.Scan() {
+		line := sc.Text()
+		key := dedupeKey(line)
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		fmt.Fprintln(bw, line)
+	}
 }
 
 func stdinIsPipe() bool {
